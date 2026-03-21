@@ -1,0 +1,18 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: IOChaos
+metadata:
+  name: catalog-disk-latency
+  namespace: sample-app
+spec:
+  action: latency
+  mode: one
+  selector:
+    namespaces:
+      - sample-app
+    labelSelectors:
+      app: productcatalogservice
+      app.kubernetes.io/part-of: online-boutique
+  volumePath: /tmp
+  delay: "100ms"
+  percent: 50
+  duration: "45s"

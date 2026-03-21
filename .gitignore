@@ -1,0 +1,27 @@
+# Python / Node / general builds
+__pycache__/
+*.pyc
+.env
+venv/
+node_modules/
+
+# Kubernetes / Helm artifacts
+.kube/
+charts/
+*.tgz
+*.log
+
+# Local data
+grafana-data/
+prometheus-data/
+tmp/
+
+# Docker images and archives
+*.tar
+images/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

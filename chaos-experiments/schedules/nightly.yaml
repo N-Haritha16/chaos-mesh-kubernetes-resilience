@@ -1,0 +1,17 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: Schedule
+metadata:
+  name: nightly-complex-chaos
+  namespace: sample-app
+spec:
+  schedule: "0 2 * * *"
+  type: Workflow
+  concurrencyPolicy: Forbid
+  historyLimit: 3
+  workflow:
+    entry: complex
+    templates:
+      - name: complex
+        templateType: Workflow
+        workflowRef:
+          name: complex-failure-workflow

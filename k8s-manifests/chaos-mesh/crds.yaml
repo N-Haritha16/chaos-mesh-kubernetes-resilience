@@ -1,0 +1,94 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: podchaos.chaos-mesh.org
+spec:
+  group: chaos-mesh.org
+  names:
+    kind: PodChaos
+    plural: podchaos
+    singular: podchaos
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: networkchaos.chaos-mesh.org
+spec:
+  group: chaos-mesh.org
+  names:
+    kind: NetworkChaos
+    plural: networkchaos
+    singular: networkchaos
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: iochaos.chaos-mesh.org
+spec:
+  group: chaos-mesh.org
+  names:
+    kind: IOChaos
+    plural: iochaos
+    singular: iochaos
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: stresschaos.chaos-mesh.org
+spec:
+  group: chaos-mesh.org
+  names:
+    kind: StressChaos
+    plural: stresschaos
+    singular: stresschaos
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: httpchaos.chaos-mesh.org
+spec:
+  group: chaos-mesh.org
+  names:
+    kind: HTTPChaos
+    plural: httpchaos
+    singular: httpchaos
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object

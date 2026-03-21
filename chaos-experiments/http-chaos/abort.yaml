@@ -1,0 +1,19 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: HTTPChaos
+metadata:
+  name: catalog-http-abort
+  namespace: sample-app
+spec:
+  mode: one
+  selector:
+    namespaces:
+      - sample-app
+    labelSelectors:
+      app: productcatalogservice
+      app.kubernetes.io/part-of: online-boutique
+  target: Request
+  port: 3550
+  path: "/listproducts*"
+  method: GET
+  abort: true
+  duration: "30s"

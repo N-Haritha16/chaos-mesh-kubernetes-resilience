@@ -1,0 +1,13 @@
+clusterScoped: true
+
+controllerManager:
+  enabled: false
+
+dashboard:
+  enabled: false
+
+chaosDaemon:
+  enabled: false
+
+scheduler:
+  enabled: false

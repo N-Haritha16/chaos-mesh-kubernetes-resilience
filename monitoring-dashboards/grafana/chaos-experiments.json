@@ -1,0 +1,36 @@
+{
+  "title": "Chaos Experiments Impact",
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "version": 1,
+  "panels": [
+    {
+      "type": "graph",
+      "title": "Chaos Experiments Triggered",
+      "id": 1,
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(rate(chaos_mesh_experiments_total[5m])) by (kind)",
+          "legendFormat": "{{kind}}"
+        }
+      ]
+    },
+    {
+      "type": "graph",
+      "title": "HTTP Error Rate During Chaos",
+      "id": 2,
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "100 * sum(rate(http_server_requests_errors_total[5m])) / sum(rate(http_server_requests_total[5m]))",
+          "legendFormat": "errors %"
+        }
+      ]
+    }
+  ],
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

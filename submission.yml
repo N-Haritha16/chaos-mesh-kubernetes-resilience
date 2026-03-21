@@ -1,0 +1,21 @@
+version: "1"
+
+steps:
+  - name: setup-environment
+    description: Create namespaces and deploy Chaos Mesh, monitoring, and sample app
+    run: |
+      set -e
+      ./scripts/01-setup-cluster.sh
+      ./scripts/02-deploy-stack.sh
+
+  - name: run-chaos-workflow
+    description: Apply Chaos Mesh workflow to run multiple chaos experiments
+    run: |
+      set -e
+      ./scripts/03-run-chaos.sh
+
+  - name: cleanup
+    description: Remove all Kubernetes resources and delete the demo cluster
+    run: |
+      set -e
+      ./scripts/05-cleanup.sh

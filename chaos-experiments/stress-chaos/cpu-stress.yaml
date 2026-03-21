@@ -1,0 +1,18 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: StressChaos
+metadata:
+  name: catalog-cpu-stress
+  namespace: sample-app
+spec:
+  mode: one
+  selector:
+    namespaces:
+      - sample-app
+    labelSelectors:
+      app: productcatalogservice
+      app.kubernetes.io/part-of: online-boutique
+  stressors:
+    cpu:
+      workers: 2
+      load: 80
+  duration: "60s"

@@ -1,0 +1,60 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: Workflow
+metadata:
+  name: complex-failure-workflow
+  namespace: sample-app
+spec:
+  entry: serial-chaos
+  templates:
+    - name: serial-chaos
+      templateType: Serial
+      children:
+        - pod-failure-step
+        - network-latency-step
+        - cpu-stress-step
+
+    - name: pod-failure-step
+      templateType: PodChaos
+      podChaos:
+        action: pod-failure
+        mode: one
+        duration: "30s"
+        selector:
+          namespaces:
+            - sample-app
+          labelSelectors:
+            app: frontend
+            app.kubernetes.io/part-of: online-boutique
+
+    - name: network-latency-step
+      templateType: NetworkChaos
+      networkChaos:
+        action: delay
+        mode: one
+        selector:
+          namespaces:
+            - sample-app
+          labelSelectors:
+            app: productcatalogservice
+            app.kubernetes.io/part-of: online-boutique
+        delay:
+          latency: "200ms"
+          correlation: "10"
+          jitter: "50ms"
+        duration: "60s"
+
+    - name: cpu-stress-step
+      templateType: StressChaos
+      stressChaos:
+        mode: one
+        selector:
+          namespaces:
+            - sample-app
+          labelSelectors:
+            app: productcatalogservice
+            app.kubernetes.io/part-of: online-boutique
+        stressors:
+          cpu:
+            workers: 2
+            load: 80
+        duration: "60s"

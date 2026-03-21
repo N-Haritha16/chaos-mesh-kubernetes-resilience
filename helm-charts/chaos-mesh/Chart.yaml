@@ -1,0 +1,6 @@
+apiVersion: v2
+name: chaos-mesh-local
+description: Minimal Chaos Mesh chart wrapper for this demo
+type: application
+version: 0.1.0
+appVersion: "2.7.0"

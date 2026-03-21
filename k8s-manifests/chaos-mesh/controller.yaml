@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: chaos-controller-manager
+  namespace: chaos-mesh
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chaos-controller-manager
+  namespace: chaos-mesh
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: chaos-controller-manager
+  template:
+    metadata:
+      labels:
+        app: chaos-controller-manager
+    spec:
+      serviceAccountName: chaos-controller-manager
+      containers:
+        - name: controller
+          image: ghcr.io/chaos-mesh/chaos-mesh:v2.7.0
+          args:
+            - /chaos-controller-manager
+            - --log-level=info
+          env:
+            - name: CHAOS_MESH_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          ports:
+            - name: metrics
+              containerPort: 10081
