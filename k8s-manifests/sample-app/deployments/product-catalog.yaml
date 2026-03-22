@@ -23,7 +23,8 @@ spec:
     spec:
       containers:
         - name: productcatalogservice
-          image: gcr.io/google-samples/microservices-demo/productcatalogservice:v0.8.0
+          image:  local-productcatalog:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3550
           resources:

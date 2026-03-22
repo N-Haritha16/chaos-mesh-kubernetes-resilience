@@ -23,6 +23,7 @@ spec:
       containers:
         - name: prometheus
           image: local-prometheus:latest
+          imagePullPolicy: IfNotPresent
           args:
             - "--config.file=/etc/prometheus/prometheus.yml"
             - "--storage.tsdb.path=/prometheus"
