@@ -109,7 +109,7 @@ Prometheus discovers these pods via Kubernetes service discovery and scrapes the
 ---
 
 ## Project Structure
-
+```
 chaos-mesh-kubernetes-resilience-lab/
 │
 ├── 📁 k8s-manifests/
@@ -141,9 +141,10 @@ chaos-mesh-kubernetes-resilience-lab/
 │
 ├── 📄 README.md                        # Project documentation
 └── 📄 .gitignore                       # Git ignore rules
-
+```
 ### Module Dependency Graph
 
+```
 namespaces.yaml  ──►  monitoring/  ──►  Prometheus + Grafana running
 │
 ▼
@@ -152,10 +153,10 @@ sample-app/  ──►  Frontend + Product Catalog running
 ▼
 chaos-experiments/  ──►  Ready for injection (design)
 
----
+```
 
 ## Monitoring Pipeline
-
+```
 Application Pods (annotated)
 ↓
 Prometheus Service Discovery
@@ -165,7 +166,7 @@ Metrics Scraping (every 15s)
 Prometheus TSDB Storage
 ↓
 Grafana Dashboard Visualization
-
+``` 
 ### Dataset
 
 The sample application consists of:
@@ -362,9 +363,10 @@ kubectl get nodes
 ```
 
 **Expected output:**
-
+```
 NAME STATUS ROLES AGE VERSION
 minikube Ready control-plane 45s v1.28.3
+```
 
 ### 3. Create Namespaces
 
@@ -373,7 +375,8 @@ kubectl apply -f k8s-manifests/namespaces.yaml
 ```
 
 **Expected output:**
-
+```
 namespace/sample-app created
 namespace/monitoring created
 namespace/chaos-mesh created
+```
