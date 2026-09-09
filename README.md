@@ -64,51 +64,36 @@ The project is designed to be **interview-ready** — demonstrating Kubernetes b
 
 ## System Architecture
 
-### High-Level Overview
+### Cluster Components
 
-  Minikube Cluster
-┌────────────────────────────────────────┐
-│ │
-│ Frontend:8080 ──┐ │
-│ Product:3550 ───┼──▶ Prometheus:9090 ─┐
-│ │ │
-│ │ Grafana
-│ │ :3000
-│ │ │
-│ │ Chaos Mesh │
-│ │ Controller │
-│ └────────────────────▶│
-│ │
-└────────────────────────────────────────┘
+| Namespace | Components | Ports | Purpose |
+|-----------|------------|-------|---------|
+| **sample-app** | Frontend, Product Catalog | 8080, 3550 | Sample microservices application |
+| **monitoring** | Prometheus, Grafana | 9090, 3000 | Metrics collection and visualization |
+| **chaos-mesh** | Controller Manager, Dashboard | — | Chaos experiment orchestration |
 
 ### Data Flow — Monitoring
 
-Application Pods (annotated)
-↓
-Prometheus Service Discovery
-↓
-Metrics Scraping (every 15s)
-↓
-Prometheus TSDB Storage
-↓
-Grafana Dashboard Visualization
+| Step | Component | Action |
+|------|-----------|--------|
+| 1 | Application Pods | Annotated with `prometheus.io/scrape: "true"` |
+| 2 | Prometheus | Service discovery finds annotated pods |
+| 3 | Prometheus | Scrapes metrics every 15 seconds |
+| 4 | Prometheus TSDB | Stores time-series data |
+| 5 | Grafana | Visualizes metrics in dashboards |
 
 ### Chaos Injection Flow
 
-Chaos Experiment YAML
-↓
-Chaos Mesh Controller
-↓
-Target Pod/Network/IO Selection
-↓
-Failure Injection (duration-based)
-↓
-Automatic Recovery
-↓
-Metrics Impact (visible in Grafana)
+| Step | Component | Action |
+|------|-----------|--------|
+| 1 | Chaos Experiment YAML | Defines failure scenario |
+| 2 | Chaos Mesh Controller | Parses and validates experiment |
+| 3 | Controller | Selects target pods/network/IO |
+| 4 | Chaos Mesh | Injects failure for specified duration |
+| 5 | Kubernetes | Automatic pod recovery after duration |
+| 6 | Grafana | Shows metrics impact in real-time |
 
-
-### Text Preprocessing Pipeline
+### Pod Annotation Configuration
 
 Every pod is annotated for Prometheus scraping:
 
@@ -128,49 +113,58 @@ Prometheus discovers these pods via Kubernetes service discovery and scrapes the
 chaos-mesh-kubernetes-resilience-lab/
 │
 ├── 📁 k8s-manifests/
-│ ├── 📄 namespaces.yaml # Creates sample-app, monitoring, chaos-mesh
-│ ├── 📁 monitoring/
-│ │ ├── 📄 prometheus.yaml # Prometheus deployment + ConfigMap + Service
-│ │ └── 📄 grafana.yaml # Grafana deployment + Service
-│ └── 📁 sample-app/
-│ ├── 📁 deployments/
-│ │ ├── 📄 frontend.yaml # Frontend deployment (3 replicas, port 8080)
-│ │ └── 📄 product-catalog.yaml # Backend deployment (port 3550)
-│ └── 📄 services.yaml # Service definitions for frontend + backend
+│   ├── 📄 namespaces.yaml              # Creates sample-app, monitoring, chaos-mesh namespaces
+│   ├── 📁 monitoring/
+│   │   ├── 📄 prometheus.yaml          # Prometheus deployment + ConfigMap + Service
+│   │   └── 📄 grafana.yaml             # Grafana deployment + Service
+│   └── 📁 sample-app/
+│       ├── 📁 deployments/
+│       │   ├── 📄 frontend.yaml        # Frontend deployment (3 replicas, port 8080)
+│       │   └── 📄 product-catalog.yaml # Backend deployment (port 3550)
+│       └── 📄 services.yaml            # Service definitions for frontend + backend
 │
 ├── 📁 chaos-experiments/
-│ ├── 📁 pod-chaos/
-│ │ └── 📄 pod-failure.yaml # Random pod kills (30s duration)
-│ ├── 📁 network-chaos/
-│ │ └── 📄 latency.yaml # Network delay injection (100ms + 10ms jitter)
-│ ├── 📁 io-chaos/
-│ │ └── 📄 io-latency.yaml # Disk latency (100ms on /data)
-│ ├── 📁 stress-chaos/
-│ │ └── 📄 cpu-stress.yaml # CPU pressure (80% load, 2 workers)
-│ ├── 📁 http-chaos/
-│ │ └── 📄 http-abort.yaml # HTTP request aborts on /health
-│ ├── 📁 workflows/
-│ │ └── 📄 complex-failure.yaml # Multi-stage chaos workflow
-│ └── 📁 schedules/
-│ └── 📄 nightly.yaml # Scheduled chaos runs
+│   ├── 📁 pod-chaos/
+│   │   └── 📄 pod-failure.yaml         # Random pod kills (30s duration)
+│   ├── 📁 network-chaos/
+│   │   └── 📄 latency.yaml             # Network delay injection (100ms + 10ms jitter)
+│   ├── 📁 io-chaos/
+│   │   └── 📄 io-latency.yaml          # Disk latency (100ms on /data)
+│   ├── 📁 stress-chaos/
+│   │   └── 📄 cpu-stress.yaml          # CPU pressure (80% load, 2 workers)
+│   ├── 📁 http-chaos/
+│   │   └── 📄 http-abort.yaml          # HTTP request aborts on /health
+│   ├── 📁 workflows/
+│   │   └── 📄 complex-failure.yaml     # Multi-stage chaos workflow
+│   └── 📁 schedules/
+│       └── 📄 nightly.yaml             # Scheduled chaos runs
 │
-├── 📄 README.md
-└── 📄 .gitignore
+├── 📄 README.md                        # Project documentation
+└── 📄 .gitignore                       # Git ignore rules
 
 ### Module Dependency Graph
 
-namespaces.yaml ──► monitoring/ ──► Prometheus + Grafana running
+namespaces.yaml  ──►  monitoring/  ──►  Prometheus + Grafana running
 │
 ▼
-sample-app/ ──► Frontend + Product Catalog running
+sample-app/  ──►  Frontend + Product Catalog running
 │
 ▼
-chaos-experiments/ ──► Ready for injection (design)
-
+chaos-experiments/  ──►  Ready for injection (design)
 
 ---
 
 ## Monitoring Pipeline
+
+Application Pods (annotated)
+↓
+Prometheus Service Discovery
+↓
+Metrics Scraping (every 15s)
+↓
+Prometheus TSDB Storage
+↓
+Grafana Dashboard Visualization
 
 ### Dataset
 
@@ -368,3 +362,18 @@ kubectl get nodes
 ```
 
 **Expected output:**
+
+NAME STATUS ROLES AGE VERSION
+minikube Ready control-plane 45s v1.28.3
+
+### 3. Create Namespaces
+
+```bash
+kubectl apply -f k8s-manifests/namespaces.yaml
+```
+
+**Expected output:**
+
+namespace/sample-app created
+namespace/monitoring created
+namespace/chaos-mesh created
