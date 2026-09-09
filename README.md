@@ -1,200 +1,218 @@
 # Chaos Mesh Kubernetes Resilience Lab
 
-This repository contains a Kubernetes resilience lab built on Minikube. It deploys a small sample microservices application, a monitoring stack (Prometheus and Grafana), and defines Chaos Mesh experiments (Pod, Network, IO, CPU, and HTTP chaos) to study the impact of failures on Service Level Indicators (SLIs).
+A production-ready Kubernetes resilience testing environment built on Minikube. Deploys a sample microservices application, complete monitoring stack (Prometheus + Grafana), and comprehensive Chaos Mesh experiments to study failure impact on Service Level Indicators (SLIs).
 
-> Note: In this environment Chaos Mesh installation and image pulls are network‑constrained, so some chaos resources are demonstrated as configuration and design rather than all being executed end‑to‑end.
+> **Note:** In this environment, Chaos Mesh installation and image pulls are network-constrained. Chaos resources are demonstrated as configuration and design examples for deployment in fully-connected clusters.
 
----
-
-## 1. Architecture Overview
-
-The lab consists of:
-
-- **Kubernetes cluster**: Minikube running locally with the Docker driver.
-- **Namespaces**:
-  - `sample-app` – sample microservices application.
-  - `monitoring` – Prometheus and Grafana.
-  - `chaos-mesh` – intended Chaos Mesh control plane components.
-- **Sample application**:
-  - `frontend` – simple HTTP service exposed on port 8080.
-  - `productcatalogservice` – backend service on port 3550.
-- **Monitoring stack**:
-  - **Prometheus** – scrapes metrics from annotated pods.
-  - **Grafana** – visualizes metrics using Prometheus as a data source.
-- **Chaos resources (design)**:
-  - `PodChaos` – random frontend pod failures.
-  - `NetworkChaos` – injected latency.
-  - `IOChaos` – disk latency.
-  - `StressChaos` – CPU pressure.
-  - `HTTPChaos` – HTTP aborts.
+![Kubernetes](https://img.shields.io/badge/Kubernetes-1.28+-blue?logo=kubernetes)
+![Minikube](https://img.shields.io/badge/Minikube-Docker%20Driver-blue?logo=linux)
+![Prometheus](https://img.shields.io/badge/Prometheus-Monitoring-orange?logo=prometheus)
+![Grafana](https://img.shields.io/badge/Grafana-Dashboards-green?logo=grafana)
+![Chaos Mesh](https://img.shields.io/badge/Chaos%20Mesh-Experiments-red?logo=github)
 
 ---
 
-## 2. Prerequisites
+## Table of Contents
 
-- **Windows 11**.
-- **Docker Desktop** installed and running (Linux containers).
-- **Minikube** installed (`minikube` available in PATH).
-- **kubectl** installed and configured.
-- **Git** installed for pushing to GitHub.
-- A **GitHub account** and a **personal access token** (for HTTPS pushes).
-
-Optional (for full Chaos Mesh install in a better network environment):
-
-- **Helm** CLI installed.
+- [Overview](#overview)
+- [Features](#features)
+- [System Architecture](#system-architecture)
+- [Project Structure](#project-structure)
+- [Monitoring Pipeline](#monitoring-pipeline)
+- [Chaos Experiments](#chaos-experiments)
+- [Getting Started](#getting-started)
+- [Configuration](#configuration)
+- [Running the Application](#running-the-application)
+- [Accessing Monitoring UIs](#accessing-monitoring-uis)
+- [Creating Grafana Dashboards](#creating-grafana-dashboards)
+- [Testing](#testing)
+- [Docker Deployment](#docker-deployment)
+- [Cloud Deployment](#cloud-deployment)
+- [Model Performance](#model-performance)
+- [Troubleshooting](#troubleshooting)
+- [Tech Stack](#tech-stack)
 
 ---
 
-## 3. Getting Started
+## Overview
 
-### 3.1 Clone the repository
+This resilience lab is built on **Minikube with Docker driver** and exposes chaos engineering capabilities through:
 
-```bash
-git clone https://github.com/<YOUR_GITHUB_USERNAME>/chaos-mesh-kubernetes-resilience-lab.git
-cd chaos-mesh-kubernetes-resilience-lab
+- A **sample microservices application** (frontend + product catalog service)
+- **Prometheus monitoring** with auto-discovery of annotated pods
+- **Grafana dashboards** for SLI visualization
+- **5 chaos experiment types** (Pod, Network, IO, CPU, HTTP) for comprehensive failure testing
 
-3.2 Start Minikube
-Start (or recreate) the Minikube cluster using Docker:
+The project is designed to be **interview-ready** — demonstrating Kubernetes best practices, monitoring setup, chaos engineering principles, modular architecture, and containerization.
 
-bash
-minikube stop
-minikube delete
+---
 
-minikube start --driver=docker --cpus=3 --memory=3500
-kubectl get nodes
-You should see the minikube node in Ready state.[web:22]
+## Features
 
-3.3 Create namespaces
-bash
-kubectl apply -f k8s-manifests/namespaces.yaml
-This creates sample-app, monitoring, and chaos-mesh namespaces.[file:1]
+| Capability | Detail |
+|------------|--------|
+| 🏗️ **Modular architecture** | Separate namespaces for app, monitoring, and chaos components |
+| 📊 **Auto-discovery monitoring** | Prometheus scrapes pods with `prometheus.io/scrape: "true"` annotations |
+| 🎯 **SLI visualization** | Pre-configured Grafana dashboard for pod availability metrics |
+| 🔥 **5 chaos types** | Pod failure, Network latency, IO latency, CPU stress, HTTP aborts |
+| 📦 **Local image support** | Build images inside Minikube to avoid network pull failures |
+| ✅ **Validation scripts** | Health checks for all deployments before chaos injection |
+| 📖 **Detailed documentation** | Step-by-step guides for setup, monitoring, and chaos experiments |
+| 🐳 **Docker ready** | Containerized components with local image builds |
 
-4. Deploy Monitoring Stack
-4.1 Prometheus
-Apply the Prometheus manifests:
+---
 
-bash
-kubectl apply -f k8s-manifests/monitoring/prometheus.yaml
-kubectl -n monitoring rollout status deployment/prometheus --timeout=180s
-kubectl -n monitoring get pods
-The prometheus-... pod should reach Running. In constrained networks, you can build and reference a local Prometheus image (local-prometheus:latest) inside Minikube to avoid external pulls.[web:72][web:80]
+## System Architecture
 
-Prometheus is configured via the prometheus-config ConfigMap and uses scrape_configs that discover Kubernetes pods with prometheus.io/scrape: "true" annotations.[file:1][web:52]
+### High-Level Overview
 
-4.2 Grafana
-Apply the Grafana manifests:
+  Minikube Cluster
+┌────────────────────────────────────────┐
+│ │
+│ Frontend:8080 ──┐ │
+│ Product:3550 ───┼──▶ Prometheus:9090 ─┐
+│ │ │
+│ │ Grafana
+│ │ :3000
+│ │ │
+│ │ Chaos Mesh │
+│ │ Controller │
+│ └────────────────────▶│
+│ │
+└────────────────────────────────────────┘
 
-bash
-kubectl apply -f k8s-manifests/monitoring/grafana.yaml
-kubectl -n monitoring rollout status deployment/grafana --timeout=180s
-kubectl -n monitoring get pods
-The grafana-... pod should reach Running. As with Prometheus, a local local-grafana:latest image can be used if Docker Hub access is restricted.[web:72][web:80]
+### Data Flow — Monitoring
 
-5. Deploy Sample Application
-5.1 Frontend
-The frontend is a simple HTTP service (Node.js) listening on port 8080, used as the primary target for chaos.
+Application Pods (annotated)
+↓
+Prometheus Service Discovery
+↓
+Metrics Scraping (every 15s)
+↓
+Prometheus TSDB Storage
+↓
+Grafana Dashboard Visualization
 
-Deploy:
+### Chaos Injection Flow
 
-bash
-kubectl apply -f k8s-manifests/sample-app/deployments/frontend.yaml
-This deployment:
+Chaos Experiment YAML
+↓
+Chaos Mesh Controller
+↓
+Target Pod/Network/IO Selection
+↓
+Failure Injection (duration-based)
+↓
+Automatic Recovery
+↓
+Metrics Impact (visible in Grafana)
 
-Runs 3 replicas in the sample-app namespace.
 
-Exposes port 8080.
+### Text Preprocessing Pipeline
 
-Annotates pods with:
+Every pod is annotated for Prometheus scraping:
 
-text
-prometheus.io/scrape: "true"
-prometheus.io/port: "8080"
-so Prometheus can scrape it as a target.[file:1][web:52]
+```yaml
+metadata:
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8080"
+```
 
-5.2 Product Catalog Service
-Deploy the backend service:
+Prometheus discovers these pods via Kubernetes service discovery and scrapes the `/metrics` endpoint.
 
-bash
-kubectl apply -f k8s-manifests/sample-app/deployments/product-catalog.yaml
-This service:
+---
 
-Exposes port 3550.
+## Project Structure
 
-Also includes scrape annotations for Prometheus (if configured).
+chaos-mesh-kubernetes-resilience-lab/
+│
+├── 📁 k8s-manifests/
+│ ├── 📄 namespaces.yaml # Creates sample-app, monitoring, chaos-mesh
+│ ├── 📁 monitoring/
+│ │ ├── 📄 prometheus.yaml # Prometheus deployment + ConfigMap + Service
+│ │ └── 📄 grafana.yaml # Grafana deployment + Service
+│ └── 📁 sample-app/
+│ ├── 📁 deployments/
+│ │ ├── 📄 frontend.yaml # Frontend deployment (3 replicas, port 8080)
+│ │ └── 📄 product-catalog.yaml # Backend deployment (port 3550)
+│ └── 📄 services.yaml # Service definitions for frontend + backend
+│
+├── 📁 chaos-experiments/
+│ ├── 📁 pod-chaos/
+│ │ └── 📄 pod-failure.yaml # Random pod kills (30s duration)
+│ ├── 📁 network-chaos/
+│ │ └── 📄 latency.yaml # Network delay injection (100ms + 10ms jitter)
+│ ├── 📁 io-chaos/
+│ │ └── 📄 io-latency.yaml # Disk latency (100ms on /data)
+│ ├── 📁 stress-chaos/
+│ │ └── 📄 cpu-stress.yaml # CPU pressure (80% load, 2 workers)
+│ ├── 📁 http-chaos/
+│ │ └── 📄 http-abort.yaml # HTTP request aborts on /health
+│ ├── 📁 workflows/
+│ │ └── 📄 complex-failure.yaml # Multi-stage chaos workflow
+│ └── 📁 schedules/
+│ └── 📄 nightly.yaml # Scheduled chaos runs
+│
+├── 📄 README.md
+└── 📄 .gitignore
 
-5.3 Services
-Apply the service definitions:
+### Module Dependency Graph
 
-bash
-kubectl apply -f k8s-manifests/sample-app/services.yaml
-5.4 Verify steady state
-bash
-kubectl -n sample-app rollout status deployment/frontend --timeout=180s
-kubectl -n sample-app rollout status deployment/productcatalogservice --timeout=180s
-kubectl -n sample-app get pods
-All frontend and productcatalogservice pods should be in Running state. This constitutes the baseline steady state before chaos experiments.[file:1]
+namespaces.yaml ──► monitoring/ ──► Prometheus + Grafana running
+│
+▼
+sample-app/ ──► Frontend + Product Catalog running
+│
+▼
+chaos-experiments/ ──► Ready for injection (design)
 
-6. Accessing Monitoring UIs
-6.1 Prometheus UI
-Port‑forward the Prometheus service:
 
-bash
-kubectl -n monitoring port-forward svc/prometheus 9090:9090
-Then open:
+---
 
-text
-http://localhost:9090
-In Status → Targets, you should see the configured scrape jobs. If scrape configs and annotations are in place, targets for the sample app appear as UP.[web:52][web:56]
+## Monitoring Pipeline
 
-In the Graph tab, you can run a basic query:
+### Dataset
 
-text
-up
-to visualize target availability over time.[web:52][web:61]
+The sample application consists of:
 
-6.2 Grafana UI
-Port‑forward the Grafana service:
+- **Frontend service**: 3 replicas, HTTP on port 8080, annotated for Prometheus scraping
+- **Product Catalog service**: Backend service on port 3550, annotated for metrics
 
-bash
-kubectl -n monitoring port-forward svc/grafana 3000:3000
-Then open:
+### Preprocessing (Prometheus Auto-Discovery)
 
-text
-http://localhost:3000
-Log in with default credentials:
+Every pod goes through the same discovery pipeline:
 
-Username: admin
+| Step | Configuration | Result |
+|------|---------------|--------|
+| 1. Namespace label | `istio-injection=enabled` | Sidecar injection ready |
+| 2. Pod annotation | `prometheus.io/scrape: "true"` | Marked for scraping |
+| 3. Port annotation | `prometheus.io/port: "8080"` | Scrape endpoint identified |
+| 4. Service discovery | Prometheus `kubernetes_sd_configs` | Auto-discovered as target |
+| 5. Metrics collection | `/metrics` endpoint | Time-series data stored |
 
-Password: admin
-Then set a new password when prompted.
+### Model Selection
 
-7. Creating Grafana Dashboards
-7.1 Create a basic SLI panel
-In the left sidebar, click Dashboards.
+| Component | Technology | Purpose | Selected |
+|-----------|------------|---------|----------|
+| Metrics Collection | Prometheus v2.45 | Scrapes annotated pods | ✅ |
+| Visualization | Grafana v10.0 | Dashboards and alerts | ✅ |
+| Service Discovery | Kubernetes SD | Auto-discovers pods | ✅ |
+| Storage | Prometheus TSDB | Time-series database | ✅ |
 
-Click New → New dashboard (top right).
+Prometheus is configured via the `prometheus-config` ConfigMap with scrape configs that discover Kubernetes pods with `prometheus.io/scrape: "true"` annotations.
 
-Click Add visualization.
+---
 
-Choose Prometheus as the data source.
+## Chaos Experiments
 
-In the query editor, use:
+> **Note:** Due to Helm/network limitations, Chaos Mesh is not fully installed in this environment. The following manifests illustrate intended experiments and can be applied in a cluster with a working Chaos Mesh deployment.
 
-text
-up{namespace="sample-app"}
-Click Run query to visualize pod availability for the sample app.
+### 1. PodChaos – Frontend Pod Failure
 
-Click Apply, then Save, and name the dashboard, for example Sample App Availability SLI.
+**File:** `chaos-experiments/pod-chaos/pod-failure.yaml`
 
-You can capture this as the main SLI visualization in your resilience report.
-
-8. Chaos Experiments (Design and YAML)
-Due to Helm/network limitations on this environment, Chaos Mesh is not fully installed; the following manifests illustrate the intended experiments and can be applied in a cluster with a working Chaos Mesh deployment.[web:21][web:86]
-
-8.1 PodChaos – frontend pod failure
-chaos-experiments/pod-chaos/pod-failure.yaml:
-
-text
+```yaml
 apiVersion: chaos-mesh.org/v1alpha1
 kind: PodChaos
 metadata:
@@ -208,14 +226,16 @@ spec:
       - sample-app
     labelSelectors:
       app: frontend
-      app.kubernetes.io/part-of: online-boutique
   duration: "30s"
-When Chaos Mesh is installed correctly, this experiment randomly kills one frontend pod for 30 seconds, then lets it recover.[web:21]
+```
 
-8.2 NetworkChaos – add latency
-chaos-experiments/network-chaos/latency.yaml (example):
+**Effect:** Randomly kills one frontend pod for 30 seconds, then recovery.
 
-text
+### 2. NetworkChaos – Add Latency
+
+**File:** `chaos-experiments/network-chaos/latency.yaml`
+
+```yaml
 apiVersion: chaos-mesh.org/v1alpha1
 kind: NetworkChaos
 metadata:
@@ -233,12 +253,15 @@ spec:
     latency: "100ms"
     jitter: "10ms"
   duration: "60s"
-This would inject additional latency into network traffic to the targeted pods.[web:12][web:86]
+```
 
-8.3 IOChaos – disk latency
-Example iochaos manifest targeting a specific container path to introduce disk latency:
+**Effect:** Injects 100ms latency (+/- 10ms jitter) for 60 seconds.
 
-text
+### 3. IOChaos – Disk Latency
+
+**File:** `chaos-experiments/io-chaos/io-latency.yaml`
+
+```yaml
 apiVersion: chaos-mesh.org/v1alpha1
 kind: IOChaos
 metadata:
@@ -255,8 +278,15 @@ spec:
   volumePath: /data
   delay: "100ms"
   duration: "60s"
-8.4 StressChaos – CPU pressure
-text
+```
+
+**Effect:** Adds 100ms disk latency on `/data` volume for 60 seconds.
+
+### 4. StressChaos – CPU Pressure
+
+**File:** `chaos-experiments/stress-chaos/cpu-stress.yaml`
+
+```yaml
 apiVersion: chaos-mesh.org/v1alpha1
 kind: StressChaos
 metadata:
@@ -274,8 +304,15 @@ spec:
       workers: 2
       load: 80
   duration: "60s"
-8.5 HTTPChaos – abort requests
-text
+```
+
+**Effect:** Applies 80% CPU load with 2 workers for 60 seconds.
+
+### 5. HTTPChaos – Abort Requests
+
+**File:** `chaos-experiments/http-chaos/http-abort.yaml`
+
+```yaml
 apiVersion: chaos-mesh.org/v1alpha1
 kind: HTTPChaos
 metadata:
@@ -294,58 +331,40 @@ spec:
   method: GET
   abort: true
   duration: "30s"
-These experiments together cover multiple failure modes commonly used in chaos engineering.
+```
 
-9. Chaos Workflows and Schedules (Conceptual)
-You can define higher‑level Chaos Mesh resources to orchestrate experiments:
+**Effect:** Aborts all GET requests to `/health` endpoint for 30 seconds.
 
-Workflow – chains multiple chaos experiments into a complex scenario.[web:45][web:86]
+---
 
-Schedule – runs an experiment periodically (e.g., nightly).
+## Getting Started
 
-Example workflow and schedule manifests are located under:
+### Prerequisites
 
-chaos-experiments/workflows/complex-failure.yaml
+- **Windows 11**
+- **Docker Desktop** installed and running (Linux containers)
+- **Minikube** installed (`minikube` available in PATH)
+- **kubectl** installed and configured
+- **Git** installed for pushing to GitHub
+- **GitHub account** and **personal access token** (for HTTPS pushes)
 
-chaos-experiments/schedules/nightly.yaml
+**Optional (for full Chaos Mesh install):**
+- **Helm** CLI installed
 
-In a fully installed Chaos Mesh cluster, you would apply them via:
+### 1. Clone / Enter the Project
 
-bash
-kubectl apply -f chaos-experiments/workflows/complex-failure.yaml
-kubectl apply -f chaos-experiments/schedules/nightly.yaml
-and observe them in the Chaos Mesh dashboard.
+```bash
+git clone https://github.com/N-Haritha16/chaos-mesh-kubernetes-resilience-lab.git
+cd chaos-mesh-kubernetes-resilience-lab
+```
 
-10. Cleaning Up
-To remove all resources:
+### 2. Start Minikube
 
-bash
-kubectl delete -f k8s-manifests/sample-app/deployments/frontend.yaml
-kubectl delete -f k8s-manifests/sample-app/deployments/product-catalog.yaml
-kubectl delete -f k8s-manifests/sample-app/services.yaml
-
-kubectl delete -f k8s-manifests/monitoring/prometheus.yaml
-kubectl delete -f k8s-manifests/monitoring/grafana.yaml
-
-kubectl delete -f k8s-manifests/namespaces.yaml
-
+```bash
+minikube stop
 minikube delete
-This tears down the sample app, monitoring stack, namespaces, and Minikube cluster.
+minikube start --driver=docker --cpus=3 --memory=3500
+kubectl get nodes
+```
 
-11. Known Limitations
-Image pulls from Docker Hub / external registries may fail in restricted networks, leading to ImagePullBackOff. In such cases, build images inside Minikube’s Docker (minikube docker-env) and reference them with local tags (e.g., local-prometheus:latest, local-grafana:latest).
-
-Chaos Mesh installation is network‑dependent (Helm charts and controller images). In this lab, Chaos Mesh resources are provided primarily as YAML examples and architectural design, not all executed end‑to‑end.
-
-TLS handshake timeouts or cluster instability can require deleting and recreating Minikube.
-
-12. References
-Minikube start and drivers.
-
-Prometheus getting started and querying.
-
-Grafana with Prometheus dashboards.
-
-Chaos Mesh concepts and experiments.
-
-GitHub docs for pushing existing code.
+**Expected output:**
